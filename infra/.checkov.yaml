@@ -1,0 +1,20 @@
+# Checkov configuration for the DDW Terraform.
+# Run locally with: checkov -d infra --config-file infra/.checkov.yaml
+framework:
+  - terraform
+quiet: true
+compact: true
+download-external-modules: false
+
+# Skips are explicit and justified. Each one is a conscious risk decision,
+# not a way to silence noise. Revisit before promoting to prod.
+skip-check:
+  # Private endpoints are a prod hardening item tracked separately; dev uses
+  # service firewall + public-access-disabled instead.
+  - CKV_AZURE_109   # Key Vault should use private endpoint
+  - CKV2_AZURE_32   # Key Vault private endpoint
+  - CKV_AZURE_113   # SQL Server private endpoint
+  # Customer-managed keys (CMK) for SQL/Key Vault are a prod-only requirement;
+  # dev relies on Microsoft-managed keys.
+  - CKV2_AZURE_18   # SQL CMK
+  - CKV_AZURE_206   # Storage account uses CMK

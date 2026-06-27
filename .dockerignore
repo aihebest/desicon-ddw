@@ -1,0 +1,13 @@
+**/bin
+**/obj
+**/.git
+**/.github
+**/.terraform
+**/*.tfstate*
+**/*.md
+**/*.docx
+infra/
+.env
+.env.*
+*.pem
+*.key

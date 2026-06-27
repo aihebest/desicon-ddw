@@ -1,0 +1,20 @@
+# Provider requirements for the DDW stack module.
+# The module declares what it needs; provider configuration is passed in from the root.
+terraform {
+  required_version = ">= 1.6.0"
+
+  required_providers {
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = "~> 4.0"
+    }
+    azuread = {
+      source  = "hashicorp/azuread"
+      version = "~> 3.0"
+    }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.6"
+    }
+  }
+}

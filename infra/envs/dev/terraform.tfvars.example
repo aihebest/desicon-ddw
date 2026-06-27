@@ -1,0 +1,12 @@
+# Copy to terraform.tfvars and fill in. Do NOT commit real values.
+subscription_id     = "00000000-0000-0000-0000-000000000000"
+location            = "uksouth"
+sql_admin_login     = "DDW-SQL-Admins-Dev"
+sql_admin_object_id = "11111111-1111-1111-1111-111111111111"
+
+spa_redirect_uris = [
+  "https://localhost:5001/signin-oidc",
+]
+
+# Only needed if you set enable_public_network_access = true in main.tf
+allowed_ip_cidrs = []

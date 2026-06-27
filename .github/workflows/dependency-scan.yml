@@ -1,0 +1,72 @@
+name: Dependency Scan
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: write
+  security-events: write
+
+jobs:
+  # GitHub's native dependency review — blocks PRs that add vulnerable deps.
+  dependency-review:
+    name: Dependency Review
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
+          comment-summary-in-pr: always
+
+  # Trivy filesystem scan — catches vulnerable lockfile deps and leaked secrets.
+  trivy-fs:
+    name: Trivy filesystem
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Trivy - scan repository
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: sarif
+          output: trivy-fs.sarif
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          scanners: vuln,secret,misconfig
+
+      - name: Upload Trivy SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-fs.sarif
+          category: trivy-fs
+
+  # .NET-specific transitive vulnerability check.
+  dotnet-vulnerable:
+    name: dotnet list --vulnerable
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.x"
+      - name: Restore & check for vulnerable packages
+        run: |
+          if ls **/*.sln **/*.csproj >/dev/null 2>&1; then
+            dotnet restore
+            echo "Checking transitive vulnerabilities..."
+            dotnet list package --vulnerable --include-transitive 2>&1 | tee vuln.txt
+            if grep -q -E "Critical|High" vuln.txt; then
+              echo "::error::High/Critical vulnerable NuGet packages found"; exit 1
+            fi
+          else
+            echo "No .NET projects yet — skipping."
+          fi
