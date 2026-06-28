@@ -27,12 +27,13 @@ resource "azurerm_linux_web_app" "this" {
   key_vault_reference_identity_id = azurerm_user_assigned_identity.app.id
 
   site_config {
-    always_on              = true
-    http2_enabled          = true
-    minimum_tls_version    = "1.2"
-    ftps_state             = "Disabled"
-    vnet_route_all_enabled = false
-    health_check_path      = "/health"
+    always_on                         = true
+    http2_enabled                     = true
+    minimum_tls_version               = "1.2"
+    ftps_state                        = "Disabled"
+    vnet_route_all_enabled            = false
+    health_check_path                 = "/health"
+    health_check_eviction_time_in_min = 5
 
     application_stack {
       docker_registry_url = var.container_registry_url

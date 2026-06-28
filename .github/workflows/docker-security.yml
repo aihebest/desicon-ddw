@@ -43,24 +43,13 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Trivy - scan image for OS & library CVEs
-        uses: aquasecurity/trivy-action@v0.28.0
-        with:
-          image-ref: ${{ env.IMAGE_NAME }}:${{ github.sha }}
-          format: sarif
-          output: trivy-image.sarif
-          severity: HIGH,CRITICAL
-          ignore-unfixed: true
-          exit-code: "1"          # fail the build on HIGH/CRITICAL with a fix
-          scanners: vuln,secret,misconfig
+      - name: Install Trivy
+        run: curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sudo sh -s -- -b /usr/local/bin
 
-      - name: Upload Trivy SARIF
-        if: always()
-        continue-on-error: true # Code Scanning upload requires GitHub Advanced Security
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: trivy-image.sarif
-          category: trivy-image
+      # Fail the build on HIGH/CRITICAL CVEs with an available fix, so a
+      # vulnerable image is never pushed.
+      - name: Trivy image scan
+        run: trivy image --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 --scanners vuln,secret,misconfig --no-progress ${{ env.IMAGE_NAME }}:${{ github.sha }}
 
       # Only publish an image that passed the scan, and only from main.
       - name: Log in to GHCR

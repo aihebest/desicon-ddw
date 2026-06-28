@@ -35,24 +35,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Trivy - scan repository
-        uses: aquasecurity/trivy-action@v0.28.0
-        with:
-          scan-type: fs
-          scan-ref: .
-          format: sarif
-          output: trivy-fs.sarif
-          severity: HIGH,CRITICAL
-          ignore-unfixed: true
-          scanners: vuln,secret,misconfig
+      # Install Trivy directly (avoids brittle internal action version pins).
+      - name: Install Trivy
+        run: curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sudo sh -s -- -b /usr/local/bin
 
-      - name: Upload Trivy SARIF
-        if: always()
-        continue-on-error: true # Code Scanning upload requires GitHub Advanced Security
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: trivy-fs.sarif
-          category: trivy-fs
+      - name: Trivy filesystem scan (vulns, secrets, misconfig)
+        run: trivy fs --severity HIGH,CRITICAL --ignore-unfixed --scanners vuln,secret,misconfig --no-progress .
 
   # .NET-specific transitive vulnerability check.
   dotnet-vulnerable:
