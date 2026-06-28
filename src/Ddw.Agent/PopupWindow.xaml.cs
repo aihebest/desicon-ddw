@@ -56,8 +56,13 @@ public partial class PopupWindow : Window
 
     private async void Action_Click(object sender, RoutedEventArgs e)
     {
-        if (_note.RequiresAck) await ApiClient.AckAsync(_note.Id, _config);
-        else await ApiClient.ReadAsync(_note.Id, _config);
+        try
+        {
+            var (token, _) = await AuthService.GetTokenAsync(allowInteractive: false);
+            if (_note.RequiresAck) await ApiClient.AckAsync(_note.Id, _config, token);
+            else await ApiClient.ReadAsync(_note.Id, _config, token);
+        }
+        catch { /* best effort */ }
         Close();
     }
 

@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.Win32;
@@ -33,21 +34,31 @@ public static class ApiClient
     public const string BaseUrl = "https://alerts.desiconapp.com";
     private static readonly HttpClient Http = new() { BaseAddress = new Uri(BaseUrl), Timeout = TimeSpan.FromSeconds(30) };
 
-    public static async Task<List<NotificationDto>> PollAsync(UserConfig c)
+    public static async Task<List<NotificationDto>> PollAsync(UserConfig c, string token)
     {
         var ctx = new UserContext(c.Upn, NullIfEmpty(c.Department), NullIfEmpty(c.Location),
                                   NullIfEmpty(c.Project), null, c.DeviceName);
-        var resp = await Http.PostAsJsonAsync("/api/v1/notifications/poll", ctx);
+        using var req = new HttpRequestMessage(HttpMethod.Post, "/api/v1/notifications/poll")
+        { Content = JsonContent.Create(ctx) };
+        req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var resp = await Http.SendAsync(req);
         resp.EnsureSuccessStatusCode();
         return await resp.Content.ReadFromJsonAsync<List<NotificationDto>>() ?? new();
     }
 
-    public static Task ReadAsync(long id, UserConfig c) => Post($"/api/v1/notifications/{id}/read", c);
-    public static Task AckAsync(long id, UserConfig c) => Post($"/api/v1/notifications/{id}/ack", c);
+    public static Task ReadAsync(long id, UserConfig c, string token) => Post($"/api/v1/notifications/{id}/read", c, token);
+    public static Task AckAsync(long id, UserConfig c, string token) => Post($"/api/v1/notifications/{id}/ack", c, token);
 
-    private static async Task Post(string path, UserConfig c)
+    private static async Task Post(string path, UserConfig c, string token)
     {
-        try { await Http.PostAsJsonAsync(path, new AckBody(c.Upn, c.DeviceName)); } catch { /* best effort */ }
+        try
+        {
+            using var req = new HttpRequestMessage(HttpMethod.Post, path)
+            { Content = JsonContent.Create(new AckBody(c.Upn, c.DeviceName)) };
+            req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            await Http.SendAsync(req);
+        }
+        catch { /* best effort */ }
     }
 
     private static string? NullIfEmpty(string s) => string.IsNullOrWhiteSpace(s) ? null : s;

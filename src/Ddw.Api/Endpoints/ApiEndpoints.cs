@@ -1,6 +1,8 @@
+using System.Security.Claims;
 using Ddw.Api.Data;
 using Ddw.Api.Domain;
 using Ddw.Api.Dtos;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 
 namespace Ddw.Api.Endpoints;
@@ -14,7 +16,9 @@ public static class ApiEndpoints
            .WithTags("System");
 
         var admin = app.MapGroup("/api/v1").AddEndpointFilter(new AdminKeyFilter());
-        var agent = app.MapGroup("/api/v1");
+        // Agent endpoints require a valid Entra token; identity comes from the token.
+        var agent = app.MapGroup("/api/v1")
+            .RequireAuthorization(p => p.AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme).RequireAuthenticatedUser());
 
         // ---------- ADMIN: create / list ----------
         admin.MapPost("/announcements", async (CreateAnnouncementDto dto, DdwDbContext db) =>
@@ -55,9 +59,10 @@ public static class ApiEndpoints
             .WithTags("Admin");
 
         // ---------- AGENT: poll for my notifications (the targeting engine) ----------
-        agent.MapPost("/notifications/poll", async (UserContext me, DdwDbContext db) =>
+        agent.MapPost("/notifications/poll", async (UserContext me, ClaimsPrincipal user, DdwDbContext db) =>
         {
-            if (string.IsNullOrWhiteSpace(me.Upn)) return Results.BadRequest("Upn is required.");
+            var upn = UpnOf(user);
+            if (string.IsNullOrWhiteSpace(upn)) return Results.Unauthorized();
             var now = DateTime.UtcNow;
 
             var matches = await db.Announcements
@@ -71,17 +76,17 @@ public static class ApiEndpoints
                     || (t.ScopeType == ScopeType.Project && me.Project != null && t.ScopeValue == me.Project)
                     || (t.ScopeType == ScopeType.Role && me.Role != null && t.ScopeValue == me.Role)))
                 // only what this user has NOT yet read/acknowledged
-                .Where(a => !a.Acknowledgments.Any(ack => ack.UserUpn == me.Upn && (int)ack.Action >= (int)AckAction.Read))
+                .Where(a => !a.Acknowledgments.Any(ack => ack.UserUpn == upn && (int)ack.Action >= (int)AckAction.Read))
                 .OrderByDescending(a => a.Priority).ThenByDescending(a => a.PublishAt)
                 .ToListAsync();
 
             // Record a delivery the first time each one is pushed to this user.
             var ids = matches.Select(a => a.Id).ToList();
             var delivered = await db.Acknowledgments
-                .Where(ack => ack.UserUpn == me.Upn && ack.Action == AckAction.Delivered && ids.Contains(ack.AnnouncementId))
+                .Where(ack => ack.UserUpn == upn && ack.Action == AckAction.Delivered && ids.Contains(ack.AnnouncementId))
                 .Select(ack => ack.AnnouncementId).ToListAsync();
             foreach (var a in matches.Where(a => !delivered.Contains(a.Id)))
-                db.Acknowledgments.Add(new Acknowledgment { AnnouncementId = a.Id, UserUpn = me.Upn, Action = AckAction.Delivered, DeviceName = me.DeviceName });
+                db.Acknowledgments.Add(new Acknowledgment { AnnouncementId = a.Id, UserUpn = upn, Action = AckAction.Delivered, DeviceName = me.DeviceName });
             if (matches.Count > delivered.Count) await db.SaveChangesAsync();
 
             var result = matches.Select(a => new NotificationDto(
@@ -89,11 +94,11 @@ public static class ApiEndpoints
             return Results.Ok(result);
         }).WithTags("Agent");
 
-        agent.MapPost("/notifications/{id:long}/read", (long id, AckBody body, DdwDbContext db)
-            => RecordAck(id, body, AckAction.Read, db)).WithTags("Agent");
+        agent.MapPost("/notifications/{id:long}/read", (long id, AckBody body, ClaimsPrincipal user, DdwDbContext db)
+            => RecordAck(id, UpnOf(user), body.DeviceName, AckAction.Read, db)).WithTags("Agent");
 
-        agent.MapPost("/notifications/{id:long}/ack", (long id, AckBody body, DdwDbContext db)
-            => RecordAck(id, body, AckAction.Acknowledged, db)).WithTags("Agent");
+        agent.MapPost("/notifications/{id:long}/ack", (long id, AckBody body, ClaimsPrincipal user, DdwDbContext db)
+            => RecordAck(id, UpnOf(user), body.DeviceName, AckAction.Acknowledged, db)).WithTags("Agent");
 
         // ---------- ADMIN: analytics ----------
         admin.MapGet("/analytics", async (DdwDbContext db) =>
@@ -117,27 +122,34 @@ public static class ApiEndpoints
         }).WithTags("Admin");
     }
 
-    private static async Task<IResult> RecordAck(long id, AckBody body, AckAction action, DdwDbContext db)
+    private static async Task<IResult> RecordAck(long id, string upn, string? device, AckAction action, DdwDbContext db)
     {
-        if (string.IsNullOrWhiteSpace(body.Upn)) return Results.BadRequest("Upn is required.");
+        if (string.IsNullOrWhiteSpace(upn)) return Results.Unauthorized();
         var exists = await db.Announcements.AnyAsync(a => a.Id == id);
         if (!exists) return Results.NotFound();
 
         var already = await db.Acknowledgments
-            .AnyAsync(x => x.AnnouncementId == id && x.UserUpn == body.Upn && x.Action == action);
+            .AnyAsync(x => x.AnnouncementId == id && x.UserUpn == upn && x.Action == action);
         if (!already)
         {
             db.Acknowledgments.Add(new Acknowledgment
             {
                 AnnouncementId = id,
-                UserUpn = body.Upn,
+                UserUpn = upn,
                 Action = action,
-                DeviceName = body.DeviceName
+                DeviceName = device
             });
             await db.SaveChangesAsync();
         }
-        return Results.Ok(new { announcementId = id, user = body.Upn, status = action.ToString() });
+        return Results.Ok(new { announcementId = id, user = upn, status = action.ToString() });
     }
+
+    // Pull the user's UPN from the validated Entra token (never trust the request body for identity).
+    private static string UpnOf(ClaimsPrincipal u)
+        => u.FindFirst("preferred_username")?.Value
+           ?? u.FindFirst(ClaimTypes.Upn)?.Value
+           ?? u.FindFirst("upn")?.Value
+           ?? u.Identity?.Name ?? "";
 }
 
 public record AckBody(string Upn, string? DeviceName);

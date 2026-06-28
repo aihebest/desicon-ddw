@@ -12,17 +12,36 @@ public partial class App : System.Windows.Application
     private UserConfig _config = new();
     private readonly Dictionary<long, PopupWindow> _open = new();
 
-    protected override void OnStartup(StartupEventArgs e)
+    protected override async void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
 
-        // First run: collect the user's details.
-        var existing = ConfigStore.Load();
-        if (existing is null || string.IsNullOrWhiteSpace(existing.Upn))
+        // Sign in with the employee's Microsoft 365 account (interactive once, silent after).
+        string upn;
+        try
         {
-            if (!ShowSetup()) { Shutdown(); return; }
+            (_, upn) = await AuthService.GetTokenAsync(allowInteractive: true);
         }
-        else { _config = existing; }
+        catch (Exception ex)
+        {
+            System.Windows.MessageBox.Show("Sign-in is required to use Desicon Alerts.\n\n" + ex.Message,
+                "Desicon Alerts", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+            Shutdown();
+            return;
+        }
+
+        // Identity comes from Entra; collect site details on first run.
+        var cfg = ConfigStore.Load() ?? new UserConfig();
+        cfg.Upn = upn;
+        if (string.IsNullOrWhiteSpace(cfg.Location))
+        {
+            var win = new SetupWindow(cfg);
+            if (win.ShowDialog() != true) { Shutdown(); return; }
+            cfg = win.Result;
+        }
+        cfg.Upn = upn;
+        ConfigStore.Save(cfg);
+        _config = cfg;
 
         StartupRegistration.EnsureRegistered();
         BuildTray();
@@ -31,8 +50,7 @@ public partial class App : System.Windows.Application
         _timer.Tick += async (_, _) => await PollAndShow();
         _timer.Start();
 
-        // Login check — catch anything queued while signed out.
-        Dispatcher.BeginInvoke(async () => await PollAndShow(), DispatcherPriority.ApplicationIdle);
+        await PollAndShow(); // login check — catch anything queued
     }
 
     private void BuildTray()
@@ -57,7 +75,8 @@ public partial class App : System.Windows.Application
     {
         try
         {
-            var notes = await ApiClient.PollAsync(_config);
+            var (token, _) = await AuthService.GetTokenAsync(allowInteractive: false);
+            var notes = await ApiClient.PollAsync(_config, token);
             foreach (var n in notes)
             {
                 if (_open.ContainsKey(n.Id)) continue; // already on screen
@@ -68,14 +87,19 @@ public partial class App : System.Windows.Application
             }
             _tray.Text = notes.Count > 0 ? $"Desicon Alerts — {notes.Count} unread" : "Desicon Alerts";
         }
-        catch { /* offline / server unreachable — try again next tick */ }
+        catch { /* offline / token refresh needed — retry next tick */ }
     }
 
     private bool ShowSetup()
     {
         var win = new SetupWindow(ConfigStore.Load() ?? _config);
-        if (win.ShowDialog() == true) { _config = win.Result; ConfigStore.Save(_config); return true; }
-        return ConfigStore.Load() is not null; // keep running if already configured
+        if (win.ShowDialog() == true)
+        {
+            _config = win.Result;
+            ConfigStore.Save(_config);
+            return true;
+        }
+        return ConfigStore.Load() is not null;
     }
 
     private void ExitApp()

@@ -24,9 +24,10 @@ builder.Services.Configure<ForwardedHeadersOptions>(o =>
     o.KnownProxies.Clear();
 });
 
-// ----- Entra ID sign-in for the admin portal -----
-builder.Services.AddAuthentication(OpenIdConnectDefaults.AuthenticationScheme)
-    .AddMicrosoftIdentityWebApp(builder.Configuration.GetSection("AzureAd"));
+// ----- Entra ID: OIDC sign-in for the portal + JWT bearer for the agent API -----
+var authBuilder = builder.Services.AddAuthentication(OpenIdConnectDefaults.AuthenticationScheme);
+authBuilder.AddMicrosoftIdentityWebApp(builder.Configuration.GetSection("AzureAd"));      // portal (cookie/OIDC)
+authBuilder.AddMicrosoftIdentityWebApi(builder.Configuration.GetSection("AzureAd"));       // agent (JWT bearer)
 builder.Services.AddAuthorization();
 builder.Services.AddControllersWithViews().AddMicrosoftIdentityUI();
 builder.Services.AddCascadingAuthenticationState();
