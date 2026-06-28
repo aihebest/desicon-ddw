@@ -14,9 +14,9 @@ resource "azurerm_linux_web_app" "this" {
   location            = azurerm_resource_group.this.location
   service_plan_id     = azurerm_service_plan.this.id
 
-  https_only                      = true
-  public_network_access_enabled   = true
-  client_affinity_enabled         = false
+  https_only                               = true
+  public_network_access_enabled            = true
+  client_affinity_enabled                  = false
   ftp_publish_basic_authentication_enabled = false
 
   identity {
@@ -41,17 +41,17 @@ resource "azurerm_linux_web_app" "this" {
   }
 
   app_settings = {
-    "WEBSITES_PORT"                          = tostring(var.container_port)
-    "ASPNETCORE_ENVIRONMENT"                 = title(var.environment)
-    "AZURE_CLIENT_ID"                        = azurerm_user_assigned_identity.app.client_id
-    "APPLICATIONINSIGHTS_CONNECTION_STRING"  = azurerm_application_insights.this.connection_string
+    "WEBSITES_PORT"                              = tostring(var.container_port)
+    "ASPNETCORE_ENVIRONMENT"                     = title(var.environment)
+    "AZURE_CLIENT_ID"                            = azurerm_user_assigned_identity.app.client_id
+    "APPLICATIONINSIGHTS_CONNECTION_STRING"      = azurerm_application_insights.this.connection_string
     "ApplicationInsightsAgent_EXTENSION_VERSION" = "~3"
-    "KeyVault__Uri"                          = azurerm_key_vault.this.vault_uri
+    "KeyVault__Uri"                              = azurerm_key_vault.this.vault_uri
     # Key Vault reference: App Service resolves this at runtime via the managed identity.
-    "ConnectionStrings__Default"             = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault_secret.sql_connection.versionless_id})"
-    "AzureAd__TenantId"                      = data.azurerm_client_config.current.tenant_id
-    "AzureAd__ClientId"                      = azuread_application.api.client_id
-    "AzureAd__Audience"                      = var.api_identifier_uri
+    "ConnectionStrings__Default" = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault_secret.sql_connection.versionless_id})"
+    "AzureAd__TenantId"          = data.azurerm_client_config.current.tenant_id
+    "AzureAd__ClientId"          = azuread_application.api.client_id
+    "AzureAd__Audience"          = var.api_identifier_uri
   }
 
   logs {

@@ -35,7 +35,7 @@ resource "azurerm_mssql_database" "this" {
   transparent_data_encryption_enabled = true
 
   # Resilience.
-  zone_redundant = var.environment == "prod" ? true : false
+  zone_redundant       = var.environment == "prod" ? true : false
   storage_account_type = "Geo"
 
   tags = local.common_tags
