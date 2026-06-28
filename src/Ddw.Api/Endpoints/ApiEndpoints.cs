@@ -13,9 +13,6 @@ public static class ApiEndpoints
         app.MapGet("/health", () => Results.Ok(new { status = "healthy", service = "Ddw.Api" }))
            .WithTags("System");
 
-        app.MapGet("/", () => Results.Ok(new { name = "Desicon Enterprise Communication & Alert Platform API", docs = "/swagger" }))
-           .WithTags("System");
-
         var admin = app.MapGroup("/api/v1").AddEndpointFilter(new AdminKeyFilter());
         var agent = app.MapGroup("/api/v1");
 

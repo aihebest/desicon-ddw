@@ -39,10 +39,11 @@ resource "azurerm_role_assignment" "kv_app_reader" {
   principal_id         = azurerm_user_assigned_identity.app.principal_id
 }
 
-# The human admin (SQL AAD admin) may read secrets — e.g. the AdminApiKey.
+# The human admin (SQL AAD admin) may read and manage secrets — e.g. read the
+# AdminApiKey, store the Entra client secret, rotate keys.
 resource "azurerm_role_assignment" "kv_admin_user" {
   scope                = azurerm_key_vault.this.id
-  role_definition_name = "Key Vault Secrets User"
+  role_definition_name = "Key Vault Secrets Officer"
   principal_id         = var.sql_admin_object_id
 }
 

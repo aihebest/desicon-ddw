@@ -1,0 +1,77 @@
+@page "/"
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject DdwApiClient Api
+
+<PageTitle>Dashboard</PageTitle>
+<h1 class="h3 mb-4">Engagement Dashboard</h1>
+
+@if (stats is null)
+{
+    <div class="text-muted"><span class="spinner-border spinner-border-sm"></span> Loading analytics…</div>
+}
+else
+{
+    <div class="row g-3 mb-4">
+        <div class="col-md-2 col-6">@Card("Announcements", stats.TotalAnnouncements, "primary", "megaphone")</div>
+        <div class="col-md-2 col-6">@Card("Published", stats.Published, "info", "send")</div>
+        <div class="col-md-2 col-6">@Card("Deliveries", stats.TotalDeliveries, "secondary", "laptop")</div>
+        <div class="col-md-2 col-6">@Card("Reads", stats.TotalReads, "success", "eye")</div>
+        <div class="col-md-2 col-6">@Card("Acknowledged", stats.TotalAcknowledged, "success", "check2-circle")</div>
+        <div class="col-md-2 col-6">@Card("Pending Unread", stats.PendingUnread, "warning", "exclamation-triangle")</div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-header bg-white fw-semibold">Per-announcement engagement</div>
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead class="table-light">
+                    <tr><th>#</th><th>Title</th><th>Priority</th><th class="text-end">Delivered</th><th class="text-end">Read</th><th class="text-end">Acknowledged</th><th>Read rate</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var a in stats.PerAnnouncement)
+                    {
+                        var rate = a.Delivered == 0 ? 0 : (int)(100.0 * a.Read / a.Delivered);
+                        <tr>
+                            <td>@a.AnnouncementId</td>
+                            <td>@a.Title</td>
+                            <td><span class="badge bg-@PriorityColor((int)a.Priority)">@a.Priority</span></td>
+                            <td class="text-end">@a.Delivered</td>
+                            <td class="text-end">@a.Read</td>
+                            <td class="text-end">@a.Acknowledged</td>
+                            <td style="min-width:120px">
+                                <div class="progress" style="height:16px;">
+                                    <div class="progress-bar bg-success" style="width:@(rate)%">@rate%</div>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                    @if (stats.PerAnnouncement.Count == 0)
+                    {
+                        <tr><td colspan="7" class="text-center text-muted py-3">No announcements yet.</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+@code {
+    private AnalyticsSummary? stats;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try { stats = await Api.GetAnalyticsAsync(); }
+        catch { stats = new AnalyticsSummary(0, 0, 0, 0, 0, 0, new()); }
+    }
+
+    private RenderFragment Card(string label, int value, string color, string icon) => @<div class="card shadow-sm border-0 h-100">
+        <div class="card-body text-center">
+            <i class="bi bi-@icon fs-3 text-@color"></i>
+            <div class="fs-3 fw-bold">@value</div>
+            <div class="text-muted small">@label</div>
+        </div>
+    </div>;
+
+    private static string PriorityColor(int p) => p switch { 3 => "danger", 2 => "warning", 1 => "primary", _ => "secondary" };
+}

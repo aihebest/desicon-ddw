@@ -1,0 +1,26 @@
+@inherits LayoutComponentBase
+
+<div class="d-flex flex-column min-vh-100">
+    <nav class="navbar navbar-dark px-3" style="background-color:#1F4E79;">
+        <span class="navbar-brand mb-0 h1">
+            <i class="bi bi-broadcast"></i> Desicon Communication &amp; Alert Platform
+        </span>
+        <div class="d-flex align-items-center gap-3">
+            <a class="nav-link text-white" href="/"><i class="bi bi-speedometer2"></i> Dashboard</a>
+            <a class="nav-link text-white" href="/create"><i class="bi bi-megaphone"></i> New Announcement</a>
+            <a class="nav-link text-white" href="/announcements"><i class="bi bi-list-ul"></i> History</a>
+            <AuthorizeView>
+                <span class="text-white-50 small">@context.User.Identity?.Name</span>
+                <a class="btn btn-sm btn-outline-light" href="MicrosoftIdentity/Account/SignOut">Sign out</a>
+            </AuthorizeView>
+        </div>
+    </nav>
+
+    <main class="container-fluid py-4 flex-grow-1">
+        @Body
+    </main>
+
+    <footer class="text-center text-muted small py-3 border-top">
+        Desicon Engineering &middot; Internal Communication Platform
+    </footer>
+</div>

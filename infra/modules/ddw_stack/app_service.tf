@@ -36,6 +36,7 @@ resource "azurerm_linux_web_app" "this" {
     minimum_tls_version               = "1.2"
     ftps_state                        = "Disabled"
     vnet_route_all_enabled            = false
+    websockets_enabled                = true # Blazor Server circuit
     health_check_path                 = "/health"
     health_check_eviction_time_in_min = 5
 
@@ -58,6 +59,8 @@ resource "azurerm_linux_web_app" "this" {
     "AzureAd__TenantId"          = data.azurerm_client_config.current.tenant_id
     "AzureAd__ClientId"          = var.api_client_id
     "AzureAd__Audience"          = var.api_identifier_uri
+    # Entra client secret for the portal sign-in (stored in Key Vault by the admin).
+    "AzureAd__ClientSecret" = "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.this.name};SecretName=AzureAdClientSecret)"
   }
 
   logs {

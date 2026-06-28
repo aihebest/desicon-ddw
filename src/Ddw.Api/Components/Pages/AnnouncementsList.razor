@@ -1,0 +1,55 @@
+@page "/announcements"
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject DdwApiClient Api
+
+<PageTitle>Announcement History</PageTitle>
+<h1 class="h3 mb-4">Announcement History</h1>
+
+@if (items is null)
+{
+    <div class="text-muted"><span class="spinner-border spinner-border-sm"></span> Loading…</div>
+}
+else if (items.Count == 0)
+{
+    <div class="alert alert-info">No announcements yet. <a href="/create">Create the first one</a>.</div>
+}
+else
+{
+    <div class="card shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead class="table-light">
+                    <tr><th>#</th><th>Title</th><th>Category</th><th>Priority</th><th>Targets</th><th>Published</th><th>Ack?</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var a in items)
+                    {
+                        <tr>
+                            <td>@a.Id</td>
+                            <td class="fw-semibold">@a.Title</td>
+                            <td><span class="badge bg-light text-dark">@a.Category</span></td>
+                            <td><span class="badge bg-@PriorityColor(a.Priority)">@((Priority)a.Priority)</span></td>
+                            <td>@string.Join(", ", a.Targets.Select(ScopeLabel))</td>
+                            <td>@a.PublishAt.ToString("dd MMM, HH:mm")</td>
+                            <td>@(a.RequiresAck ? "Yes" : "—")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+@code {
+    private List<AnnouncementListItem>? items;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try { items = await Api.GetAnnouncementsAsync() ?? new(); }
+        catch { items = new(); }
+    }
+
+    static string ScopeLabel(AnnouncementTargetItem t) => t.ScopeType == 0 ? "Everyone" : $"{(ScopeType)t.ScopeType}: {t.ScopeValue}";
+    static string PriorityColor(int p) => p switch { 3 => "danger", 2 => "warning", 1 => "primary", _ => "secondary" };
+}

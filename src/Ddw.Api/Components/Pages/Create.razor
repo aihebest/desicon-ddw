@@ -1,0 +1,131 @@
+@page "/create"
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject DdwApiClient Api
+
+<PageTitle>New Announcement</PageTitle>
+<h1 class="h3 mb-4">New Announcement</h1>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Title</label>
+                    <input class="form-control" @bind="title" placeholder="e.g. Site Safety Stand-down" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Message</label>
+                    <textarea class="form-control" rows="4" @bind="body" placeholder="Write the announcement…"></textarea>
+                </div>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label fw-semibold">Category</label>
+                        <select class="form-select" @bind="category">
+                            <option>General</option><option>HSE</option><option>ICT</option>
+                            <option>HR</option><option>Project</option><option>Finance</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label fw-semibold">Priority</label>
+                        <select class="form-select" @bind="priority">
+                            <option value="1">Normal</option><option value="2">High</option><option value="3">Critical</option><option value="0">Low</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4 mb-3 d-flex align-items-end">
+                        <div class="form-check me-3">
+                            <input class="form-check-input" type="checkbox" @bind="requiresAck" id="ack" />
+                            <label class="form-check-label" for="ack">Require acknowledgement</label>
+                        </div>
+                    </div>
+                </div>
+
+                <hr />
+                <label class="form-label fw-semibold">Who should receive this?</label>
+                <div class="row g-2 align-items-end mb-2">
+                    <div class="col-md-4">
+                        <select class="form-select" @bind="scopeType">
+                            <option value="0">Everyone</option>
+                            <option value="1">Department</option>
+                            <option value="2">Location</option>
+                            <option value="3">Project</option>
+                            <option value="4">Role</option>
+                        </select>
+                    </div>
+                    @if (scopeType != 0)
+                    {
+                        <div class="col-md-5">
+                            @if (scopeType == 2)
+                            {
+                                <select class="form-select" @bind="scopeValue">
+                                    <option value="">Select location…</option>
+                                    <option>Port Harcourt</option><option>Lagos</option><option>Bonny</option>
+                                </select>
+                            }
+                            else
+                            {
+                                <input class="form-control" @bind="scopeValue" placeholder="e.g. Engineering / NLNG Train 7" />
+                            }
+                        </div>
+                    }
+                    <div class="col-md-3">
+                        <button class="btn btn-outline-primary w-100" @onclick="AddTarget"><i class="bi bi-plus-lg"></i> Add target</button>
+                    </div>
+                </div>
+
+                @if (targets.Count > 0)
+                {
+                    <div class="mb-3">
+                        @foreach (var t in targets)
+                        {
+                            <span class="badge bg-secondary me-2 mb-1 p-2">
+                                @ScopeLabel(t) <i class="bi bi-x-circle ms-1" role="button" @onclick="() => targets.Remove(t)"></i>
+                            </span>
+                        }
+                    </div>
+                }
+
+                <button class="btn btn-primary px-4" @onclick="Publish" disabled="@publishing">
+                    @if (publishing) { <span class="spinner-border spinner-border-sm me-1"></span> }
+                    <i class="bi bi-send"></i> Publish
+                </button>
+
+                @if (result is not null)
+                {
+                    <div class="alert @(ok ? "alert-success" : "alert-danger") mt-3 mb-0">@result</div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    string title = "", body = "", category = "General", scopeValue = "";
+    int priority = 1, scopeType = 0;
+    bool requiresAck = false, publishing = false, ok = false;
+    string? result;
+    List<TargetDto> targets = new();
+
+    void AddTarget()
+    {
+        var st = (ScopeType)scopeType;
+        if (st != ScopeType.All && string.IsNullOrWhiteSpace(scopeValue)) { result = "Enter a target value."; ok = false; return; }
+        targets.Add(new TargetDto(st, st == ScopeType.All ? null : scopeValue));
+        scopeValue = ""; result = null;
+    }
+
+    async Task Publish()
+    {
+        result = null;
+        if (string.IsNullOrWhiteSpace(title)) { result = "Title is required."; ok = false; return; }
+        if (targets.Count == 0) targets.Add(new TargetDto(ScopeType.All, null)); // default everyone
+        publishing = true;
+        var dto = new CreateAnnouncementDto(title, body, category, (Priority)priority, requiresAck, true, null, null, targets);
+        var (success, msg) = await Api.CreateAsync(dto);
+        publishing = false; ok = success;
+        result = success ? "Published! It will reach matching staff on their next check-in." : $"Failed: {msg}";
+        if (success) { title = ""; body = ""; targets = new(); requiresAck = false; }
+    }
+
+    static string ScopeLabel(TargetDto t) => t.ScopeType == ScopeType.All ? "Everyone" : $"{t.ScopeType}: {t.ScopeValue}";
+}
