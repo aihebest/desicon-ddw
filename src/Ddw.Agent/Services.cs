@@ -30,7 +30,7 @@ public static class ConfigStore
 // Talks to the live DDW API. Poll endpoints are open; the agent sends the user's context.
 public static class ApiClient
 {
-    public const string BaseUrl = "https://app-ddw-dev-x6zi99.azurewebsites.net";
+    public const string BaseUrl = "https://alerts.desiconapp.com";
     private static readonly HttpClient Http = new() { BaseAddress = new Uri(BaseUrl), Timeout = TimeSpan.FromSeconds(30) };
 
     public static async Task<List<NotificationDto>> PollAsync(UserConfig c)
