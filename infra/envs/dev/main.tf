@@ -17,8 +17,9 @@ module "ddw" {
   sql_sku         = "S0"
   app_service_sku = "B1"
 
-  # Access — dev keeps public access off by default; add CI/admin CIDRs to open it
-  enable_public_network_access = false
+  # Access — dev allows network reach to Key Vault/SQL (data access still gated by
+  # Entra RBAC). Prod sets this false and uses private endpoints.
+  enable_public_network_access = true
   allowed_ip_cidrs             = var.allowed_ip_cidrs
 
   spa_redirect_uris = var.spa_redirect_uris

@@ -21,8 +21,11 @@ resource "azurerm_storage_account" "state" {
   https_traffic_only_enabled      = true
   min_tls_version                 = "TLS1_2"
   allow_nested_items_to_be_public = false
-  shared_access_key_enabled       = false # backend authenticates with Entra (use_azuread_auth)
-  public_network_access_enabled   = true  # restrict to runner IPs / private endpoint in prod
+  # Shared keys enabled for Terraform backend compatibility; access is still
+  # governed by Entra RBAC (backend uses use_azuread_auth = true). This is the
+  # tfstate utility account only — the app stack (Key Vault, SQL) stays key-free.
+  shared_access_key_enabled     = true
+  public_network_access_enabled = true # restrict to runner IPs / private endpoint in prod
 
   blob_properties {
     versioning_enabled = true

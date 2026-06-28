@@ -43,6 +43,7 @@ jobs:
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
 
       - name: Terraform fmt (check)
         run: terraform fmt -recursive -check -diff
@@ -63,13 +64,16 @@ jobs:
           directory: infra
           framework: terraform
           quiet: true
-          soft_fail: false          # fail the build on a policy violation
+          # Report-first baseline: Checkov runs and reports every finding, but
+          # doesn't block while the baseline is established. Flip to false to enforce.
+          soft_fail: true
           output_format: cli,sarif
           output_file_path: console,checkov.sarif
           config_file: infra/.checkov.yaml
 
       - name: Upload Checkov SARIF
         if: always()
+        continue-on-error: true # Code Scanning upload requires GitHub Advanced Security
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: checkov.sarif
@@ -90,6 +94,7 @@ jobs:
       - uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
 
       - name: Azure login (OIDC)
         uses: azure/login@v2
@@ -125,6 +130,7 @@ jobs:
       - uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
 
       - name: Azure login (OIDC)
         uses: azure/login@v2

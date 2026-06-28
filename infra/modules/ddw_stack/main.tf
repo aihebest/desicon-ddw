@@ -13,15 +13,15 @@ locals {
   suffix = random_string.suffix.result
 
   # Globally-unique-safe names (Key Vault <=24, SQL/Web app lowercase).
-  rg_name      = "rg-${local.base}"
-  kv_name      = substr("kv-${var.name_prefix}${var.environment}${local.suffix}", 0, 24)
-  sql_name     = "sql-${local.base}-${local.suffix}"
-  sqldb_name   = "sqldb-${local.base}"
-  plan_name    = "asp-${local.base}"
-  app_name     = "app-${local.base}-${local.suffix}"
-  law_name     = "law-${local.base}"
-  appi_name    = "appi-${local.base}"
-  uami_name    = "id-${local.base}"
+  rg_name    = "rg-${local.base}"
+  kv_name    = substr("kv-${var.name_prefix}${var.environment}${local.suffix}", 0, 24)
+  sql_name   = "sql-${local.base}-${local.suffix}"
+  sqldb_name = "sqldb-${local.base}"
+  plan_name  = "asp-${local.base}"
+  app_name   = "app-${local.base}-${local.suffix}"
+  law_name   = "law-${local.base}"
+  appi_name  = "appi-${local.base}"
+  uami_name  = "id-${local.base}"
 
   common_tags = merge({
     application = "Desicon Digital Workplace"

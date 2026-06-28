@@ -1,11 +1,12 @@
 name: Docker Build & Trivy Scan
 
+# Only runs once there is application code to build (src/**) or the Dockerfile
+# changes — stays dormant until the DDW API is scaffolded.
 on:
   pull_request:
     paths:
       - "src/**"
       - "Dockerfile"
-      - ".github/workflows/docker-security.yml"
   push:
     branches: [main]
     paths:
@@ -42,23 +43,13 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Trivy - scan image for OS & library CVEs
-        uses: aquasecurity/trivy-action@0.28.0
-        with:
-          image-ref: ${{ env.IMAGE_NAME }}:${{ github.sha }}
-          format: sarif
-          output: trivy-image.sarif
-          severity: HIGH,CRITICAL
-          ignore-unfixed: true
-          exit-code: "1"          # fail the build on HIGH/CRITICAL with a fix
-          scanners: vuln,secret,misconfig
+      - name: Install Trivy
+        run: curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sudo sh -s -- -b /usr/local/bin
 
-      - name: Upload Trivy SARIF
-        if: always()
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: trivy-image.sarif
-          category: trivy-image
+      # Fail the build on HIGH/CRITICAL CVEs with an available fix, so a
+      # vulnerable image is never pushed.
+      - name: Trivy image scan
+        run: trivy image --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 --scanners vuln,secret,misconfig --no-progress ${{ env.IMAGE_NAME }}:${{ github.sha }}
 
       # Only publish an image that passed the scan, and only from main.
       - name: Log in to GHCR
