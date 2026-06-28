@@ -23,9 +23,12 @@ tfplan
 .env
 .env.*
 
-# Scan output
+# Scan output / diagnostics
 *.sarif
 vuln.txt
+*.zip
+dl*.zip
+ddwlogs.zip
 
 # .NET
 bin/

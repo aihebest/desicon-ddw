@@ -39,6 +39,13 @@ resource "azurerm_role_assignment" "kv_app_reader" {
   principal_id         = azurerm_user_assigned_identity.app.principal_id
 }
 
+# The human admin (SQL AAD admin) may read secrets — e.g. the AdminApiKey.
+resource "azurerm_role_assignment" "kv_admin_user" {
+  scope                = azurerm_key_vault.this.id
+  role_definition_name = "Key Vault Secrets User"
+  principal_id         = var.sql_admin_object_id
+}
+
 # Stream Key Vault audit/data-plane logs to the workspace.
 resource "azurerm_monitor_diagnostic_setting" "kv" {
   name                       = "kv-diagnostics"

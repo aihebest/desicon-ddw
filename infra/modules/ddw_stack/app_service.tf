@@ -54,6 +54,7 @@ resource "azurerm_linux_web_app" "this" {
     "KeyVault__Uri"                              = azurerm_key_vault.this.vault_uri
     # Key Vault reference: App Service resolves this at runtime via the managed identity.
     "ConnectionStrings__Default" = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault_secret.sql_connection.versionless_id})"
+    "AdminApiKey"                = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault_secret.admin_api_key.versionless_id})"
     "AzureAd__TenantId"          = data.azurerm_client_config.current.tenant_id
     "AzureAd__ClientId"          = var.api_client_id
     "AzureAd__Audience"          = var.api_identifier_uri
