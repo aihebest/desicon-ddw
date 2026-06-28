@@ -61,6 +61,12 @@ variable "app_service_sku" {
   default     = "P1v3"
 }
 
+variable "deploy_app_service" {
+  description = "Create the App Service plan + web app. Requires App Service compute quota on the subscription."
+  type        = bool
+  default     = true
+}
+
 variable "container_registry_url" {
   description = "Container registry URL hosting the DDW API image."
   type        = string
@@ -97,6 +103,12 @@ variable "api_identifier_uri" {
   description = "App ID URI for the DDW API Entra app registration (e.g. api://ddw-api)."
   type        = string
   default     = "api://ddw-api"
+}
+
+variable "api_client_id" {
+  description = "Client ID of the pre-created Entra app registration for the DDW API (managed outside CI)."
+  type        = string
+  default     = ""
 }
 
 variable "spa_redirect_uris" {

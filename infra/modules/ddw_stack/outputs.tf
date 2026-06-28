@@ -5,12 +5,12 @@ output "resource_group_name" {
 
 output "app_service_default_hostname" {
   description = "Default hostname of the DDW API app service."
-  value       = azurerm_linux_web_app.this.default_hostname
+  value       = var.deploy_app_service ? azurerm_linux_web_app.this[0].default_hostname : ""
 }
 
 output "app_service_name" {
   description = "Name of the DDW API app service."
-  value       = azurerm_linux_web_app.this.name
+  value       = var.deploy_app_service ? azurerm_linux_web_app.this[0].name : ""
 }
 
 output "app_identity_principal_id" {
@@ -39,8 +39,8 @@ output "key_vault_uri" {
 }
 
 output "api_app_client_id" {
-  description = "Entra application (client) ID of the DDW API."
-  value       = azuread_application.api.client_id
+  description = "Entra application (client) ID of the DDW API (managed outside CI)."
+  value       = var.api_client_id
 }
 
 output "application_insights_connection_string" {

@@ -9,6 +9,18 @@ variable "location" {
   default     = "uksouth"
 }
 
+variable "api_client_id" {
+  description = "Client ID of the pre-created Entra app registration for the DDW API."
+  type        = string
+  default     = ""
+}
+
+variable "deploy_app_service" {
+  description = "Create the App Service (requires compute quota). Set true after a quota increase."
+  type        = bool
+  default     = false
+}
+
 variable "sql_admin_login" {
   description = "Entra principal display name to set as SQL AAD admin (e.g. group 'DDW-SQL-Admins-Dev')."
   type        = string

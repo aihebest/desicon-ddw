@@ -1,5 +1,8 @@
 # Linux App Service (containers) hosting the DDW API.
+# Gated by deploy_app_service: requires App Service compute quota on the
+# subscription. Enable once quota is granted.
 resource "azurerm_service_plan" "this" {
+  count               = var.deploy_app_service ? 1 : 0
   name                = local.plan_name
   resource_group_name = azurerm_resource_group.this.name
   location            = azurerm_resource_group.this.location
@@ -9,10 +12,11 @@ resource "azurerm_service_plan" "this" {
 }
 
 resource "azurerm_linux_web_app" "this" {
+  count               = var.deploy_app_service ? 1 : 0
   name                = local.app_name
   resource_group_name = azurerm_resource_group.this.name
   location            = azurerm_resource_group.this.location
-  service_plan_id     = azurerm_service_plan.this.id
+  service_plan_id     = azurerm_service_plan.this[0].id
 
   https_only                               = true
   public_network_access_enabled            = true
@@ -51,7 +55,7 @@ resource "azurerm_linux_web_app" "this" {
     # Key Vault reference: App Service resolves this at runtime via the managed identity.
     "ConnectionStrings__Default" = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault_secret.sql_connection.versionless_id})"
     "AzureAd__TenantId"          = data.azurerm_client_config.current.tenant_id
-    "AzureAd__ClientId"          = azuread_application.api.client_id
+    "AzureAd__ClientId"          = var.api_client_id
     "AzureAd__Audience"          = var.api_identifier_uri
   }
 
@@ -77,8 +81,9 @@ resource "azurerm_linux_web_app" "this" {
 
 # App Service diagnostics to Log Analytics.
 resource "azurerm_monitor_diagnostic_setting" "app" {
+  count                      = var.deploy_app_service ? 1 : 0
   name                       = "app-diagnostics"
-  target_resource_id         = azurerm_linux_web_app.this.id
+  target_resource_id         = azurerm_linux_web_app.this[0].id
   log_analytics_workspace_id = azurerm_log_analytics_workspace.this.id
 
   enabled_log {
