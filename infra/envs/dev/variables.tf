@@ -40,13 +40,13 @@ variable "sql_admin_object_id" {
 variable "container_registry_url" {
   description = "Registry hosting the DDW API image."
   type        = string
-  default     = "https://mcr.microsoft.com"
+  default     = "https://ghcr.io"
 }
 
 variable "container_image" {
   description = "Image:tag for the DDW API (overridden by CI with the freshly built tag)."
   type        = string
-  default     = "dotnet/samples:aspnetapp"
+  default     = "aihebest/desicon-ddw/ddw-api:latest"
 }
 
 variable "spa_redirect_uris" {
