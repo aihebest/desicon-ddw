@@ -5,7 +5,7 @@ resource "azurerm_service_plan" "this" {
   count               = var.deploy_app_service ? 1 : 0
   name                = local.plan_name
   resource_group_name = azurerm_resource_group.this.name
-  location            = azurerm_resource_group.this.location
+  location            = coalesce(var.app_service_location, azurerm_resource_group.this.location)
   os_type             = "Linux"
   sku_name            = var.app_service_sku
   tags                = local.common_tags
@@ -15,7 +15,7 @@ resource "azurerm_linux_web_app" "this" {
   count               = var.deploy_app_service ? 1 : 0
   name                = local.app_name
   resource_group_name = azurerm_resource_group.this.name
-  location            = azurerm_resource_group.this.location
+  location            = coalesce(var.app_service_location, azurerm_resource_group.this.location)
   service_plan_id     = azurerm_service_plan.this[0].id
 
   https_only                               = true

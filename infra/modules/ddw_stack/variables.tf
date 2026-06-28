@@ -67,6 +67,12 @@ variable "deploy_app_service" {
   default     = true
 }
 
+variable "app_service_location" {
+  description = "Region for the App Service (defaults to the resource group region). Use a region with compute quota."
+  type        = string
+  default     = ""
+}
+
 variable "container_registry_url" {
   description = "Container registry URL hosting the DDW API image."
   type        = string

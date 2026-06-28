@@ -20,8 +20,9 @@ module "ddw" {
   sql_sku         = "S0"
   app_service_sku = "B1"
 
-  # App Service is quota-gated on this subscription; enable after a quota grant.
-  deploy_app_service = var.deploy_app_service
+  # App Service deploys to a region with Basic quota (South Africa North).
+  deploy_app_service   = var.deploy_app_service
+  app_service_location = var.app_service_location
 
   # Access — dev allows network reach to Key Vault/SQL (data access still gated by
   # Entra RBAC). Prod sets this false and uses private endpoints.

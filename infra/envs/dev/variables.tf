@@ -12,13 +12,19 @@ variable "location" {
 variable "api_client_id" {
   description = "Client ID of the pre-created Entra app registration for the DDW API."
   type        = string
-  default     = ""
+  default     = "cdc21c25-679e-4f62-a157-86f438e57f85"
 }
 
 variable "deploy_app_service" {
-  description = "Create the App Service (requires compute quota). Set true after a quota increase."
+  description = "Create the App Service (needs compute quota in app_service_location)."
   type        = bool
-  default     = false
+  default     = true
+}
+
+variable "app_service_location" {
+  description = "Region for the App Service. South Africa North has Basic quota on this subscription."
+  type        = string
+  default     = "southafricanorth"
 }
 
 variable "sql_admin_login" {
