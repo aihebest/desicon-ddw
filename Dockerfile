@@ -26,8 +26,5 @@ EXPOSE 8080
 
 COPY --from=build /app .
 
-# Lightweight liveness for the App Service health check.
-HEALTHCHECK --interval=30s --timeout=3s --retries=3 \
-  CMD ["/app/Ddw.Api", "--health-check"]
-
+# App Service performs an HTTP health check against /health (see Terraform).
 ENTRYPOINT ["dotnet", "Ddw.Api.dll"]
