@@ -55,6 +55,16 @@ resource "azurerm_mssql_firewall_rule" "allowed" {
   end_ip_address   = cidrhost(each.value, -1)
 }
 
+# Special 0.0.0.0 rule = "Allow Azure services and resources to access this
+# server" — lets the App Service managed identity reach SQL in dev.
+resource "azurerm_mssql_firewall_rule" "azure_services" {
+  count            = var.enable_public_network_access ? 1 : 0
+  name             = "AllowAzureServices"
+  server_id        = azurerm_mssql_server.this.id
+  start_ip_address = "0.0.0.0"
+  end_ip_address   = "0.0.0.0"
+}
+
 # Server-level auditing to Log Analytics (CKV_AZURE_23/24).
 # Audits to Log Analytics via the diagnostic setting below (no storage endpoint,
 # so retention is governed by the workspace, not this policy).

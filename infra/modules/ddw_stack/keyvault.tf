@@ -15,8 +15,10 @@ resource "azurerm_key_vault" "this" {
   public_network_access_enabled = var.enable_public_network_access
 
   network_acls {
-    bypass         = "AzureServices"
-    default_action = var.enable_public_network_access ? "Deny" : "Deny"
+    bypass = "AzureServices"
+    # Dev allows network reach (data access still gated by RBAC); prod denies and
+    # uses private endpoints. Add CIDRs to allowed_ip_cidrs to restrict further.
+    default_action = var.enable_public_network_access ? "Allow" : "Deny"
     ip_rules       = var.allowed_ip_cidrs
   }
 
