@@ -13,8 +13,9 @@ COPY . .
 RUN dotnet publish src/Ddw.Api/Ddw.Api.csproj -c Release -o /app --no-restore
 
 # ---- runtime ----
-# Chiselled/distroless-style image: no shell, non-root by default, smaller CVE surface.
-FROM mcr.microsoft.com/dotnet/aspnet:9.0-noble-chiseled AS runtime
+# Chiselled "extra" image: distroless-style (no shell, non-root, small CVE surface)
+# but includes ICU + tzdata, which Microsoft.Data.SqlClient requires.
+FROM mcr.microsoft.com/dotnet/aspnet:9.0-noble-chiseled-extra AS runtime
 WORKDIR /app
 
 # Run as the built-in non-root user provided by the chiselled image.

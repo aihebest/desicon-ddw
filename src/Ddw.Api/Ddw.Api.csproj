@@ -4,7 +4,8 @@
     <TargetFramework>net9.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <InvariantGlobalization>true</InvariantGlobalization>
+    <!-- Microsoft.Data.SqlClient requires ICU/globalization; invariant mode is unsupported. -->
+    <InvariantGlobalization>false</InvariantGlobalization>
     <RootNamespace>Ddw.Api</RootNamespace>
   </PropertyGroup>
 
