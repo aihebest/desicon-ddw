@@ -11,7 +11,8 @@ public static class AuthService
 {
     private const string ClientId = "cdc21c25-679e-4f62-a157-86f438e57f85";
     private const string TenantId = "77e479f1-fefd-4238-a1a9-6b1f692f20b8";
-    private static readonly string[] Scopes = { $"api://{ClientId}/access_as_user" };
+    // Use the canonical App ID URI so the token audience matches the API (AzureAd__Audience=api://ddw-api).
+    private static readonly string[] Scopes = { "api://ddw-api/access_as_user" };
 
     private static IPublicClientApplication? _app;
 

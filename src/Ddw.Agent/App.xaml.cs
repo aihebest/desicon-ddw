@@ -12,9 +12,16 @@ public partial class App : System.Windows.Application
     private UserConfig _config = new();
     private readonly Dictionary<long, PopupWindow> _open = new();
 
+    private static System.Threading.Mutex? _single;
+
     protected override async void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+
+        // Single instance — stop a stale build from running alongside this one.
+        _single = new System.Threading.Mutex(true, "DesiconAgent.SingleInstance", out var isNew);
+        if (!isNew) { AgentLog.Write("another instance already running — exiting"); Shutdown(); return; }
+        AgentLog.Write("agent starting (build with token + logging)");
 
         // Sign in with the employee's Microsoft 365 account (interactive once, silent after).
         string upn;
@@ -76,7 +83,8 @@ public partial class App : System.Windows.Application
         try
         {
             var (token, _) = await AuthService.GetTokenAsync(allowInteractive: false);
-            var notes = await ApiClient.PollAsync(_config, token);
+            var notes = await ApiClient.PollAsync(_config, token!);
+            AgentLog.Write($"poll: API returned {notes.Count} notification(s)");
             foreach (var n in notes)
             {
                 if (_open.ContainsKey(n.Id)) continue; // already on screen
@@ -87,7 +95,10 @@ public partial class App : System.Windows.Application
             }
             _tray.Text = notes.Count > 0 ? $"Desicon Alerts — {notes.Count} unread" : "Desicon Alerts";
         }
-        catch { /* offline / token refresh needed — retry next tick */ }
+        catch (Exception ex)
+        {
+            AgentLog.Write("poll FAILED: " + ex.Message);
+        }
     }
 
     private bool ShowSetup()

@@ -8,6 +8,23 @@ using Microsoft.Win32;
 
 namespace Ddw.Agent;
 
+// Lightweight diagnostics log (%APPDATA%\DesiconAgent\agent.log).
+public static class AgentLog
+{
+    private static readonly string LogPath = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "DesiconAgent", "agent.log");
+
+    public static void Write(string msg)
+    {
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(LogPath)!);
+            File.AppendAllText(LogPath, $"{DateTime.Now:yyyy-MM-dd HH:mm:ss}  {msg}{Environment.NewLine}");
+        }
+        catch { /* never fail on logging */ }
+    }
+}
+
 // Local config (the user's email / location / department / project).
 public static class ConfigStore
 {
@@ -42,7 +59,11 @@ public static class ApiClient
         { Content = JsonContent.Create(ctx) };
         req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
         var resp = await Http.SendAsync(req);
-        resp.EnsureSuccessStatusCode();
+        if (!resp.IsSuccessStatusCode)
+        {
+            var body = await resp.Content.ReadAsStringAsync();
+            throw new HttpRequestException($"HTTP {(int)resp.StatusCode} {resp.StatusCode}: {body}");
+        }
         return await resp.Content.ReadFromJsonAsync<List<NotificationDto>>() ?? new();
     }
 

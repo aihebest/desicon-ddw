@@ -58,7 +58,9 @@ resource "azurerm_linux_web_app" "this" {
     "AdminApiKey"                = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault_secret.admin_api_key.versionless_id})"
     "AzureAd__TenantId"          = data.azurerm_client_config.current.tenant_id
     "AzureAd__ClientId"          = var.api_client_id
-    "AzureAd__Audience"          = var.api_identifier_uri
+    # v2.0 access tokens carry aud = the app's client-id GUID (not the api:// URI),
+    # so the agent's JWT validates against the client id. Must match AzureAd__ClientId.
+    "AzureAd__Audience" = var.api_client_id
     # Entra client secret for the portal sign-in (stored in Key Vault by the admin).
     "AzureAd__ClientSecret" = "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.this.name};SecretName=AzureAdClientSecret)"
   }
