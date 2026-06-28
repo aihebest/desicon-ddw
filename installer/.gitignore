@@ -1,0 +1,5 @@
+# Build artifacts - do not commit (large binaries)
+publish/
+*.msi
+*.wixobj
+*.wixpdb

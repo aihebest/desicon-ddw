@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Desicon Alerts Agent - MSI installer (WiX v4/v5).
+  Per-machine install of the self-contained agent to Program Files, plus a
+  machine-wide auto-start entry so it launches at every user's Windows login.
+  Build steps are documented in installer/README.md.
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package Name="Desicon Alerts Agent"
+           Manufacturer="Desicon Engineering"
+           Version="1.0.0.0"
+           UpgradeCode="a3604571-aec9-46e9-a788-b6f8c7a981b8"
+           Scope="perMachine"
+           InstallerVersion="500">
+
+    <SummaryInformation Description="Desicon Enterprise Communication and Alert Platform - desktop agent" />
+
+    <!-- Clean in-place upgrades; block downgrades. -->
+    <MajorUpgrade DowngradeErrorMessage="A newer version of Desicon Alerts is already installed." />
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+    <!-- Show the EULA-free single-package UI; silent install still works for GPO. -->
+    <Property Id="ARPNOMODIFY" Value="1" />
+    <Property Id="ARPNOREPAIR" Value="0" />
+
+    <!-- Install location: C:\Program Files\Desicon Alerts -->
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="Desicon Alerts" />
+    </StandardDirectory>
+
+    <Feature Id="MainFeature" Title="Desicon Alerts Agent" Level="1">
+      <!-- Auto-harvest every file from the self-contained publish output. -->
+      <Files Directory="INSTALLFOLDER" Include="publish\**" />
+
+      <!-- Machine-wide auto-start: runs for every user who logs into this PC. -->
+      <Component Id="AutoStart" Directory="INSTALLFOLDER" Guid="2a1406da-bf1c-40b0-8a0c-cfe545bff059">
+        <RegistryValue Root="HKLM"
+                       Key="Software\Microsoft\Windows\CurrentVersion\Run"
+                       Name="DesiconAlerts"
+                       Type="string"
+                       Value="&quot;[INSTALLFOLDER]DesiconAgent.exe&quot;"
+                       KeyPath="yes" />
+      </Component>
+    </Feature>
+  </Package>
+</Wix>
