@@ -1,11 +1,12 @@
 name: Docker Build & Trivy Scan
 
+# Only runs once there is application code to build (src/**) or the Dockerfile
+# changes — stays dormant until the DDW API is scaffolded.
 on:
   pull_request:
     paths:
       - "src/**"
       - "Dockerfile"
-      - ".github/workflows/docker-security.yml"
   push:
     branches: [main]
     paths:
@@ -43,7 +44,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Trivy - scan image for OS & library CVEs
-        uses: aquasecurity/trivy-action@0.24.0
+        uses: aquasecurity/trivy-action@v0.28.0
         with:
           image-ref: ${{ env.IMAGE_NAME }}:${{ github.sha }}
           format: sarif
