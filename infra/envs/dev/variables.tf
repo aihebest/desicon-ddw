@@ -46,7 +46,7 @@ variable "container_registry_url" {
 variable "container_image" {
   description = "Image:tag for the DDW API. Pinned to an immutable commit SHA so App Service pulls the exact build (it caches :latest)."
   type        = string
-  default     = "aihebest/desicon-ddw/ddw-api:2955e8afca62cb6f625de8d1401e8598c96dbc49"
+  default     = "aihebest/desicon-ddw/ddw-api:c420cbabc118e403814adad8018d3b843ba07897"
 }
 
 variable "spa_redirect_uris" {
