@@ -28,7 +28,15 @@ builder.Services.Configure<ForwardedHeadersOptions>(o =>
 var authBuilder = builder.Services.AddAuthentication(OpenIdConnectDefaults.AuthenticationScheme);
 authBuilder.AddMicrosoftIdentityWebApp(builder.Configuration.GetSection("AzureAd"));      // portal (cookie/OIDC)
 authBuilder.AddMicrosoftIdentityWebApi(builder.Configuration.GetSection("AzureAd"));       // agent (JWT bearer)
-builder.Services.AddAuthorization();
+
+// Entra delivers app roles in the "roles" claim — map it so RequireRole matches.
+builder.Services.Configure<OpenIdConnectOptions>(OpenIdConnectDefaults.AuthenticationScheme, o =>
+    o.TokenValidationParameters.RoleClaimType = "roles");
+
+// Portal is admin-only: require the DDW.Admin app role. The agent (JWT) is unaffected —
+// any authenticated employee may poll, so all staff can sign in once assignment is open.
+builder.Services.AddAuthorization(options =>
+    options.AddPolicy("AdminPortal", p => p.RequireRole("DDW.Admin")));
 builder.Services.AddControllersWithViews().AddMicrosoftIdentityUI();
 builder.Services.AddCascadingAuthenticationState();
 
@@ -83,6 +91,6 @@ app.MapDdwApi();
 // Microsoft.Identity sign-in/out controller.
 app.MapControllers();
 // Admin portal (requires Entra sign-in).
-app.MapRazorComponents<App>().AddInteractiveServerRenderMode().RequireAuthorization();
+app.MapRazorComponents<App>().AddInteractiveServerRenderMode().RequireAuthorization("AdminPortal");
 
 app.Run();
