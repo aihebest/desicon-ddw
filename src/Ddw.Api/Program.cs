@@ -29,14 +29,18 @@ var authBuilder = builder.Services.AddAuthentication(OpenIdConnectDefaults.Authe
 authBuilder.AddMicrosoftIdentityWebApp(builder.Configuration.GetSection("AzureAd"));      // portal (cookie/OIDC)
 authBuilder.AddMicrosoftIdentityWebApi(builder.Configuration.GetSection("AzureAd"));       // agent (JWT bearer)
 
-// Entra delivers app roles in the "roles" claim — map it so RequireRole matches.
+// Entra delivers app roles in the "roles" claim — map it so RequireRole / IsInRole match too.
 builder.Services.Configure<OpenIdConnectOptions>(OpenIdConnectDefaults.AuthenticationScheme, o =>
     o.TokenValidationParameters.RoleClaimType = "roles");
 
-// Portal is admin-only: require the DDW.Admin app role. The agent (JWT) is unaffected —
-// any authenticated employee may poll, so all staff can sign in once assignment is open.
+// Portal is admin-only: require the DDW.Admin app role. Robust to claim-type mapping —
+// matches the role under either the raw "roles" claim or the mapped role claim type.
+// The agent (JWT) is unaffected: any authenticated employee may poll.
 builder.Services.AddAuthorization(options =>
-    options.AddPolicy("AdminPortal", p => p.RequireRole("DDW.Admin")));
+    options.AddPolicy("AdminPortal", p => p.RequireAssertion(ctx =>
+        ctx.User.Claims.Any(c =>
+            (c.Type == "roles" || c.Type == System.Security.Claims.ClaimTypes.Role)
+            && c.Value == "DDW.Admin"))));
 builder.Services.AddControllersWithViews().AddMicrosoftIdentityUI();
 builder.Services.AddCascadingAuthenticationState();
 
