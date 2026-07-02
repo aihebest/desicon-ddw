@@ -58,6 +58,17 @@ public static class ApiEndpoints
                 .ToListAsync())
             .WithTags("Admin");
 
+        // ---------- ADMIN: withdraw (retract an announcement so it stops being delivered) ----------
+        admin.MapPost("/announcements/{id:long}/withdraw", async (long id, DdwDbContext db) =>
+        {
+            var a = await db.Announcements.FindAsync(id);
+            if (a is null) return Results.NotFound();
+            a.Status = AnnouncementStatus.Withdrawn;   // excluded from the agent poll query
+            a.ExpiresAt = DateTime.UtcNow;             // belt-and-braces: also expire it
+            await db.SaveChangesAsync();
+            return Results.Ok(new { a.Id, status = a.Status.ToString() });
+        }).WithTags("Admin");
+
         // ---------- AGENT: poll for my notifications (the targeting engine) ----------
         agent.MapPost("/notifications/poll", async (UserContext me, ClaimsPrincipal user, DdwDbContext db) =>
         {

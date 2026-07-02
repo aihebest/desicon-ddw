@@ -39,6 +39,7 @@ public partial class PopupWindow : Window
             WindowState = WindowState.Maximized;
             RootGrid.Background = (System.Windows.Media.Brush)new BrushConverter().ConvertFromString("#D91F2937")!;
             Card.Width = 480;
+            BodyScroll.MaxHeight = 500; // more room on the full-screen critical view
             DismissBtn.Visibility = Visibility.Collapsed;
         }
         else
@@ -50,8 +51,9 @@ public partial class PopupWindow : Window
     private void PositionBottomRight(object? sender, RoutedEventArgs e)
     {
         var wa = SystemParameters.WorkArea;
-        Left = wa.Right - ActualWidth - 16;
-        Top = wa.Bottom - ActualHeight - 16;
+        // Clamp on-screen so the buttons are never pushed past the screen edge.
+        Left = Math.Max(wa.Left + 8, wa.Right - ActualWidth - 16);
+        Top = Math.Max(wa.Top + 8, wa.Bottom - ActualHeight - 16);
     }
 
     private async void Action_Click(object sender, RoutedEventArgs e)

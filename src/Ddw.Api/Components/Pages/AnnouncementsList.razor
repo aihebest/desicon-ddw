@@ -6,6 +6,14 @@
 <PageTitle>Announcement History</PageTitle>
 <h1 class="h3 mb-4">Announcement History</h1>
 
+@if (_msg is not null)
+{
+    <div class="alert alert-info d-flex justify-content-between align-items-center">
+        <span>@_msg</span>
+        <button class="btn-close" @onclick="() => _msg = null"></button>
+    </div>
+}
+
 @if (items is null)
 {
     <div class="text-muted"><span class="spinner-border spinner-border-sm"></span> Loading…</div>
@@ -20,7 +28,7 @@ else
         <div class="table-responsive">
             <table class="table table-hover mb-0 align-middle">
                 <thead class="table-light">
-                    <tr><th>#</th><th>Title</th><th>Category</th><th>Priority</th><th>Targets</th><th>Published</th><th>Ack?</th></tr>
+                    <tr><th>#</th><th>Title</th><th>Category</th><th>Priority</th><th>Targets</th><th>Published</th><th>Ack?</th><th>Status</th><th class="text-end">Action</th></tr>
                 </thead>
                 <tbody>
                     @foreach (var a in items)
@@ -33,21 +41,64 @@ else
                             <td>@string.Join(", ", a.Targets.Select(ScopeLabel))</td>
                             <td>@a.PublishAt.ToString("dd MMM, HH:mm")</td>
                             <td>@(a.RequiresAck ? "Yes" : "—")</td>
+                            <td>
+                                @if (a.Status == 2)
+                                {
+                                    <span class="badge bg-secondary">Withdrawn</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-success">Live</span>
+                                }
+                            </td>
+                            <td class="text-end">
+                                @if (a.Status != 2)
+                                {
+                                    @if (_confirmId == a.Id)
+                                    {
+                                        <span class="small text-danger me-2">Stop showing to everyone?</span>
+                                        <button class="btn btn-sm btn-danger" disabled="@_busy" @onclick="() => Withdraw(a.Id)">Yes, withdraw</button>
+                                        <button class="btn btn-sm btn-light" @onclick="() => _confirmId = null">Cancel</button>
+                                    }
+                                    else
+                                    {
+                                        <button class="btn btn-sm btn-outline-danger" @onclick="() => _confirmId = a.Id">Withdraw</button>
+                                    }
+                                }
+                            </td>
                         </tr>
                     }
                 </tbody>
             </table>
         </div>
     </div>
+    <p class="text-muted small mt-2">Withdrawing an announcement stops it being delivered and stops it reappearing on the screens of staff who haven't acknowledged it yet.</p>
 }
 
 @code {
     private List<AnnouncementListItem>? items;
+    private long? _confirmId;
+    private bool _busy;
+    private string? _msg;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
     {
         try { items = await Api.GetAnnouncementsAsync() ?? new(); }
         catch { items = new(); }
+    }
+
+    private async Task Withdraw(long id)
+    {
+        _busy = true;
+        var ok = await Api.WithdrawAsync(id);
+        _confirmId = null;
+        _busy = false;
+        _msg = ok
+            ? $"Announcement #{id} has been withdrawn. It will stop appearing on staff screens within a few minutes."
+            : "Withdraw failed — please try again.";
+        await Load();
     }
 
     static string ScopeLabel(AnnouncementTargetItem t) => t.ScopeType == 0 ? "Everyone" : $"{(ScopeType)t.ScopeType}: {t.ScopeValue}";

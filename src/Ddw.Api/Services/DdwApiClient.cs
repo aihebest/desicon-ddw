@@ -19,6 +19,13 @@ public class DdwApiClient(HttpClient http)
         var body = await resp.Content.ReadAsStringAsync();
         return (resp.IsSuccessStatusCode, body);
     }
+
+    // Retract an announcement so it stops being delivered / re-appearing on staff screens.
+    public async Task<bool> WithdrawAsync(long id)
+    {
+        var resp = await http.PostAsync($"/api/v1/announcements/{id}/withdraw", null);
+        return resp.IsSuccessStatusCode;
+    }
 }
 
 // Shape returned by GET /api/v1/announcements.
